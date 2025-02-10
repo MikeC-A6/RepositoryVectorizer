@@ -15,6 +15,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/repositories", async (req, res) => {
     try {
       const data = insertRepositorySchema.parse(req.body);
+      console.log(`Processing repository URL: ${data.url}`);
 
       const repository = await storage.createRepository({
         ...data,
@@ -26,6 +27,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json(repository);
     } catch (error) {
+      console.error("Error creating repository:", error);
       res.status(400).json({ message: "Invalid repository data" });
     }
   });
@@ -46,15 +48,19 @@ async function processRepositoryFiles(repositoryId: number, url: string) {
       throw new Error("GitHub token is not configured in the server environment");
     }
 
+    console.log(`Starting GraphQL query for repository: ${url}`);
     const files = await fetchRepositoryFiles(url, process.env.GITHUB_TOKEN);
+    console.log(`Retrieved ${files.length} files from GitHub`);
 
     for (const file of files) {
+      console.log(`Processing file: ${file.path}`);
       await storage.createFile({
         repositoryId,
         ...file
       });
     }
 
+    console.log(`Successfully processed all files for repository ${repositoryId}`);
     await storage.updateRepositoryStatus(repositoryId, "completed");
   } catch (error) {
     console.error("Error processing repository files:", error);

@@ -17,6 +17,8 @@ export async function fetchRepositoryFiles(url: string, token: string): Promise<
     .replace(".git", "")
     .split("/");
 
+  console.log(`Fetching repository data for ${owner}/${name}`);
+
   const query = `
     query ($owner: String!, $name: String!) {
       repository(owner: $owner, name: $name) {
@@ -42,6 +44,7 @@ export async function fetchRepositoryFiles(url: string, token: string): Promise<
     throw new Error("GitHub token is required");
   }
 
+  console.log(`Making GraphQL request to GitHub API`);
   const res = await fetch(GITHUB_API, {
     method: "POST",
     headers: {
@@ -56,22 +59,28 @@ export async function fetchRepositoryFiles(url: string, token: string): Promise<
 
   if (!res.ok) {
     const error = await res.text();
+    console.error(`GitHub API error response:`, error);
     throw new Error(`GitHub API error: ${error}`);
   }
 
   const data = await res.json();
+  console.log(`Received GraphQL response:`, JSON.stringify(data, null, 2));
 
   if (data.errors) {
+    console.error(`GraphQL errors:`, data.errors);
     throw new Error(
       `GraphQL Error: ${data.errors.map((e: any) => e.message).join(", ")}`
     );
   }
 
-  return processGraphQLResponse(data);
+  const files = processGraphQLResponse(data);
+  console.log(`Processed ${files.length} files from GraphQL response`);
+  return files;
 }
 
 function processGraphQLResponse(data: any): FileNode[] {
   if (!data.data?.repository?.object?.entries) {
+    console.warn("No entries found in GraphQL response");
     return [];
   }
 
