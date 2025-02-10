@@ -12,6 +12,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 interface RepositoryViewProps {
   repository: Repository;
@@ -46,23 +47,40 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
     },
   });
 
-  const { data: repositoryStatus } = useQuery<Repository>({
+  // Query for repository status
+  const { data: repositoryStatus, refetch } = useQuery<Repository>({
     queryKey: ["/api/repositories", repository.id],
-    // Only poll while in pending state
-    refetchInterval: repository.status === "pending" ? 2000 : false,
+    refetchInterval: false, // We'll manage refetching manually
   });
+
+  // Get the current status, preferring the latest from the query
+  const currentStatus = repositoryStatus?.status || repository.status;
+
+  // Set up polling when status is pending
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout | null = null;
+
+    if (currentStatus === "pending") {
+      pollInterval = setInterval(() => {
+        refetch();
+      }, 2000);
+    }
+
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [currentStatus, refetch]);
 
   const { data: files, isLoading } = useQuery<File[]>({
     queryKey: ["/api/repositories", repository.id, "files"],
-    // Enable files query for both completed and ready_for_embedding states
     enabled: repositoryStatus?.status === "completed" || repositoryStatus?.status === "ready_for_embedding",
   });
 
-  // Always use the latest status from the query, fallback to prop
-  const status = repositoryStatus?.status || repository.status;
-  console.log("Current repository status:", status); // Debug log
+  console.log("Repository View - Current Status:", currentStatus); // Debug log
 
-  if (status === "pending") {
+  if (currentStatus === "pending") {
     return (
       <Card>
         <CardHeader>
@@ -78,7 +96,7 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
     );
   }
 
-  if (status === "failed") {
+  if (currentStatus === "failed") {
     return (
       <Card>
         <CardHeader>
@@ -96,7 +114,7 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
     );
   }
 
-  if (status === "ready_for_embedding") {
+  if (currentStatus === "ready_for_embedding") {
     return (
       <Card>
         <CardHeader>
