@@ -11,23 +11,53 @@ export interface FileNode {
 }
 
 export async function fetchRepositoryFiles(url: string, token: string): Promise<FileNode[]> {
-  // Extract owner and name from URL
-  const [owner, name] = url
+  // Extract owner, name and path from URL
+  const urlPath = url
     .replace("https://github.com/", "")
-    .replace(".git", "")
-    .split("/");
+    .replace(".git", "");
 
-  console.log(`Fetching repository data for ${owner}/${name}`);
+  const [owner, name, ...pathParts] = urlPath.split("/");
+  // Remove 'tree' and 'blob' segments and branch name from path
+  const dirPath = pathParts
+    .filter(part => part !== "tree" && part !== "blob")
+    .slice(1)
+    .join("/");
+
+  console.log(`Fetching repository data for ${owner}/${name}, path: ${dirPath}`);
 
   const query = `
-    query ($owner: String!, $name: String!) {
+    query ($owner: String!, $name: String!, $expression: String!) {
       repository(owner: $owner, name: $name) {
-        object(expression: "HEAD:") {
+        object(expression: $expression) {
           ... on Tree {
             entries {
               name
               type
               object {
+                ... on Tree {
+                  entries {
+                    name
+                    type
+                    object {
+                      ... on Blob {
+                        text
+                        byteSize
+                      }
+                      ... on Tree {
+                        entries {
+                          name
+                          type
+                          object {
+                            ... on Blob {
+                              text
+                              byteSize
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
                 ... on Blob {
                   text
                   byteSize
@@ -44,7 +74,7 @@ export async function fetchRepositoryFiles(url: string, token: string): Promise<
     throw new Error("GitHub token is required");
   }
 
-  console.log(`Making GraphQL request to GitHub API`);
+  console.log(`Making GraphQL request to GitHub API for path: ${dirPath}`);
   const res = await fetch(GITHUB_API, {
     method: "POST",
     headers: {
@@ -53,7 +83,11 @@ export async function fetchRepositoryFiles(url: string, token: string): Promise<
     },
     body: JSON.stringify({
       query,
-      variables: { owner, name },
+      variables: { 
+        owner, 
+        name,
+        expression: `HEAD:${dirPath}`
+      },
     }),
   });
 
@@ -73,25 +107,38 @@ export async function fetchRepositoryFiles(url: string, token: string): Promise<
     );
   }
 
-  const files = processGraphQLResponse(data);
+  const files = processGraphQLResponse(data, dirPath);
   console.log(`Processed ${files.length} files from GraphQL response`);
   return files;
 }
 
-function processGraphQLResponse(data: any): FileNode[] {
+function processGraphQLResponse(data: any, basePath: string): FileNode[] {
   if (!data.data?.repository?.object?.entries) {
     console.warn("No entries found in GraphQL response");
     return [];
   }
 
-  const entries = data.data.repository.object.entries;
-  return entries.map((entry: any) => ({
-    path: entry.name,
-    content: entry.object.text || "",
-    metadata: {
-      size: entry.object.byteSize,
-      extension: entry.name.split(".").pop() || "",
-      lastModified: new Date().toISOString(),
-    },
-  }));
+  const files: FileNode[] = [];
+  const processEntries = (entries: any[], currentPath: string) => {
+    for (const entry of entries) {
+      const path = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+
+      if (entry.type === "blob" && entry.object?.text !== undefined) {
+        files.push({
+          path,
+          content: entry.object.text || "",
+          metadata: {
+            size: entry.object.byteSize,
+            extension: entry.name.split(".").pop() || "",
+            lastModified: new Date().toISOString(),
+          },
+        });
+      } else if (entry.type === "tree" && entry.object?.entries) {
+        processEntries(entry.object.entries, path);
+      }
+    }
+  };
+
+  processEntries(data.data.repository.object.entries, basePath);
+  return files;
 }
