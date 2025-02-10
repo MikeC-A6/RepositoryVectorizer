@@ -42,7 +42,11 @@ export function registerRoutes(app: Express): Server {
 
 async function processRepositoryFiles(repositoryId: number, url: string) {
   try {
-    const files = await fetchRepositoryFiles(url);
+    if (!process.env.GITHUB_TOKEN) {
+      throw new Error("GitHub token is not configured in the server environment");
+    }
+
+    const files = await fetchRepositoryFiles(url, process.env.GITHUB_TOKEN);
 
     for (const file of files) {
       await storage.createFile({

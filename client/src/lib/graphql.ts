@@ -10,7 +10,7 @@ export interface FileNode {
   };
 }
 
-export async function fetchRepositoryFiles(url: string): Promise<FileNode[]> {
+export async function fetchRepositoryFiles(url: string, token: string): Promise<FileNode[]> {
   // Extract owner and name from URL
   const [owner, name] = url
     .replace("https://github.com/", "")
@@ -38,15 +38,15 @@ export async function fetchRepositoryFiles(url: string): Promise<FileNode[]> {
     }
   `;
 
-  if (!import.meta.env.VITE_GITHUB_TOKEN) {
-    throw new Error("GitHub token is not configured");
+  if (!token) {
+    throw new Error("GitHub token is required");
   }
 
   const res = await fetch(GITHUB_API, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `bearer ${import.meta.env.VITE_GITHUB_TOKEN}`
+      "Authorization": `bearer ${token}`
     },
     body: JSON.stringify({
       query,
