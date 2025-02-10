@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, type PgColumnBuilderBase } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -11,8 +11,10 @@ export const repositories = pgTable("repositories", {
   status: text("status").notNull().default("pending"),
 });
 
-// Define vector column type
-const vector = (dimensions: number) => sql`vector(${sql.raw(dimensions.toString())})`;
+// Define custom vector type that properly integrates with Drizzle
+export const pgVector = (dimensions: number) => {
+  return text("embedding", { mode: "json" }).$type<number[]>();
+};
 
 export const files = pgTable("files", {
   id: serial("id").primaryKey(),
@@ -20,7 +22,7 @@ export const files = pgTable("files", {
   path: text("path").notNull(),
   content: text("content").notNull(),
   metadata: jsonb("metadata").notNull(),
-  embedding: vector(1536),
+  embedding: pgVector(1536),
 });
 
 // Create index for vector similarity search
