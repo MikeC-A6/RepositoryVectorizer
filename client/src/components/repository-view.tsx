@@ -48,7 +48,7 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
 
   const { data: repositoryStatus } = useQuery<Repository>({
     queryKey: ["/api/repositories", repository.id],
-    refetchInterval: repository.status === "pending" ? 2000 : false,
+    refetchInterval: repository.status === "pending" || repository.status === "ready_for_embedding" ? 2000 : false,
   });
 
   const { data: files, isLoading } = useQuery<File[]>({
