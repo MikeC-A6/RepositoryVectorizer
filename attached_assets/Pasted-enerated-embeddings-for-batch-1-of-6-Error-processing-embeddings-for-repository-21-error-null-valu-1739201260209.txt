@@ -1,0 +1,54 @@
+enerated embeddings for batch 1 of 6
+Error processing embeddings for repository 21: error: null value in column "path" of relation "files" violates not-null constraint
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createFile (/home/runner/workspace/server/storage.ts:55:23)
+    at async EmbeddingsController.processRepository (/home/runner/workspace/server/lib/embeddings/embeddings-controller.ts:37:11)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:122:7) {
+  length: 407,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (3559, 21, null, import { drizzle } from "drizzle-orm/neon-serverless";\n' +
+    'import ws..., {"endLine": 16, "filePath": "db/index.ts", "startLine": 0, "orig..., [0.01015807,-0.00083595095,-0.010848364,0.007599554,0.029106293,...).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'files',
+  column: 'path',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '2011',
+  routine: 'ExecConstraints'
+}
+Error generating embeddings: error: null value in column "path" of relation "files" violates not-null constraint
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createFile (/home/runner/workspace/server/storage.ts:55:23)
+    at async EmbeddingsController.processRepository (/home/runner/workspace/server/lib/embeddings/embeddings-controller.ts:37:11)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:122:7) {
+  length: 407,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (3559, 21, null, import { drizzle } from "drizzle-orm/neon-serverless";\n' +
+    'import ws..., {"endLine": 16, "filePath": "db/index.ts", "startLine": 0, "orig..., [0.01015807,-0.00083595095,-0.010848364,0.007599554,0.029106293,...).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'files',
+  column: 'path',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '2011',
+  routine: 'ExecConstraints'
+}
+3:27:07 PM [express] POST /api/repositories/21/generate-embeddings 500 in 5616ms :: {"message":"Erro…

@@ -34,9 +34,14 @@ export class EmbeddingsController {
 
         // Store embeddings in database
         for (const chunk of embeddedChunks) {
+          if (!chunk.metadata?.filePath) {
+            console.warn('Skipping chunk with missing file path:', chunk);
+            continue;
+          }
+
           await storage.createFile({
             repositoryId,
-            path: chunk.path,
+            path: chunk.metadata.filePath,
             content: chunk.content,
             metadata: chunk.metadata,
             embedding: chunk.embedding
