@@ -1,0 +1,55 @@
+Processing batch 111 of 111
+Generated embeddings for 1104 chunks
+Error processing embeddings for repository 18: error: expected 1536 dimensions, not 3072
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createFile (/home/runner/workspace/server/storage.ts:45:23)
+    at async EmbeddingsController.processRepository (/home/runner/workspace/server/lib/embeddings/embeddings-controller.ts:28:9)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:122:7) {
+  length: 94,
+  severity: 'ERROR',
+  code: '22000',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'vector.c',
+  line: '72',
+  routine: 'CheckExpectedDim'
+}
+Error generating embeddings: error: expected 1536 dimensions, not 3072
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createFile (/home/runner/workspace/server/storage.ts:45:23)
+    at async EmbeddingsController.processRepository (/home/runner/workspace/server/lib/embeddings/embeddings-controller.ts:28:9)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:122:7) {
+  length: 94,
+  severity: 'ERROR',
+  code: '22000',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'vector.c',
+  line: '72',
+  routine: 'CheckExpectedDim'
+}
+3:10:28 PM [express] POST /api/repositories/18/generate-embeddings 500 in 166238ms :: {"message":"Er…
+3:10:29 PM [express] GET /api/repositories/18 200 in 18ms :: {"id":18,"url":"https://github.com/depa…
+3:10:29 PM [express] GET /api/repositories/18 304 in 18ms :: {"id":18,"url":"https://github.com/depa…

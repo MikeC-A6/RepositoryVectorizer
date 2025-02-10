@@ -144,6 +144,7 @@ export function RepositoryForm({ onSuccess }: RepositoryFormProps) {
   };
 
   const currentStatus = repositoryStatus?.status ?? processingRepository?.status;
+  const currentRepositoryId = processingRepository?.id || repositoryStatus?.id;
 
   return (
     <>
@@ -194,7 +195,12 @@ export function RepositoryForm({ onSuccess }: RepositoryFormProps) {
         </CardContent>
       </Card>
 
-      {currentStatus && <RepositoryStatus status={currentStatus} />}
+      {currentStatus && currentRepositoryId && (
+        <RepositoryStatus 
+          status={currentStatus} 
+          repositoryId={currentRepositoryId} 
+        />
+      )}
 
       <AlertDialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
         <AlertDialogContent>
