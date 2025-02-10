@@ -1,5 +1,4 @@
 import { RepositoryForm } from "@/components/repository-form";
-import { RepositoryView } from "@/components/repository-view";
 import { useState } from "react";
 import type { Repository } from "@shared/schema";
 
@@ -17,10 +16,6 @@ export default function Home() {
         </header>
 
         <RepositoryForm onSuccess={setSelectedRepo} />
-        
-        {selectedRepo && (
-          <RepositoryView repository={selectedRepo} />
-        )}
       </div>
     </div>
   );
