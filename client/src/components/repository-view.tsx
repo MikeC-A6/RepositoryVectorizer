@@ -4,15 +4,60 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { File, Repository } from "@shared/schema";
 import { FileIcon, FolderIcon } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface RepositoryViewProps {
   repository: Repository;
 }
 
 export function RepositoryView({ repository }: RepositoryViewProps) {
+  const { data: repositoryStatus } = useQuery<Repository>({
+    queryKey: ["/api/repositories", repository.id],
+    refetchInterval: repository.status === "pending" ? 2000 : false,
+  });
+
   const { data: files, isLoading } = useQuery<File[]>({
     queryKey: ["/api/repositories", repository.id, "files"],
+    enabled: repositoryStatus?.status === "completed",
   });
+
+  const status = repositoryStatus?.status || repository.status;
+
+  if (status === "pending") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Processing Repository</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Progress value={undefined} className="w-full" />
+          <p className="text-sm text-muted-foreground">
+            Analyzing repository structure and contents...
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Processing Failed</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              There was an error processing the repository. Please try again.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -33,8 +78,14 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-4">
         <CardTitle>Repository Structure</CardTitle>
+        <Alert>
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <AlertDescription>
+            Repository has been successfully processed.
+          </AlertDescription>
+        </Alert>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] w-full rounded-md border p-4">
