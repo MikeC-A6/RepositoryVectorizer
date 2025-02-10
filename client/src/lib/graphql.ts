@@ -38,10 +38,15 @@ export async function fetchRepositoryFiles(url: string): Promise<FileNode[]> {
     }
   `;
 
+  if (!import.meta.env.VITE_GITHUB_TOKEN) {
+    throw new Error("GitHub token is not configured");
+  }
+
   const res = await fetch(GITHUB_API, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `bearer ${import.meta.env.VITE_GITHUB_TOKEN}`
     },
     body: JSON.stringify({
       query,
@@ -50,14 +55,26 @@ export async function fetchRepositoryFiles(url: string): Promise<FileNode[]> {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to fetch repository data");
+    const error = await res.text();
+    throw new Error(`GitHub API error: ${error}`);
   }
 
   const data = await res.json();
+
+  if (data.errors) {
+    throw new Error(
+      `GraphQL Error: ${data.errors.map((e: any) => e.message).join(", ")}`
+    );
+  }
+
   return processGraphQLResponse(data);
 }
 
 function processGraphQLResponse(data: any): FileNode[] {
+  if (!data.data?.repository?.object?.entries) {
+    return [];
+  }
+
   const entries = data.data.repository.object.entries;
   return entries.map((entry: any) => ({
     path: entry.name,

@@ -5,10 +5,17 @@ import { insertRepositorySchema, insertFileSchema } from "@shared/schema";
 import { fetchRepositoryFiles } from "../client/src/lib/graphql";
 
 export function registerRoutes(app: Express): Server {
+  // Add environment variables route
+  app.get("/api/config", (_req, res) => {
+    res.json({
+      githubToken: process.env.GITHUB_TOKEN
+    });
+  });
+
   app.post("/api/repositories", async (req, res) => {
     try {
       const data = insertRepositorySchema.parse(req.body);
-      
+
       const repository = await storage.createRepository({
         ...data,
         processedAt: new Date().toISOString(),
@@ -36,7 +43,7 @@ export function registerRoutes(app: Express): Server {
 async function processRepositoryFiles(repositoryId: number, url: string) {
   try {
     const files = await fetchRepositoryFiles(url);
-    
+
     for (const file of files) {
       await storage.createFile({
         repositoryId,
@@ -46,6 +53,7 @@ async function processRepositoryFiles(repositoryId: number, url: string) {
 
     await storage.updateRepositoryStatus(repositoryId, "completed");
   } catch (error) {
+    console.error("Error processing repository files:", error);
     await storage.updateRepositoryStatus(repositoryId, "failed");
   }
 }
