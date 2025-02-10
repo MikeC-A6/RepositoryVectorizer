@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertRepositorySchema, insertFileSchema } from "@shared/schema";
 import { fetchRepositoryFiles } from "../client/src/lib/graphql";
+import { fileProcessor } from "./lib/file-processor";
 
 export function registerRoutes(app: Express): Server {
   // Add environment variables route
@@ -21,7 +22,7 @@ export function registerRoutes(app: Express): Server {
       if (existingRepo) {
         // Delete existing files before reprocessing
         await storage.deleteFilesByRepositoryId(existingRepo.id);
-        
+
         if (data.name !== existingRepo.name) {
           // If name is different, update it and reprocess
           await storage.updateRepository(existingRepo.id, {
@@ -65,7 +66,7 @@ export function registerRoutes(app: Express): Server {
         res.status(400).json({ message: "URL is required" });
         return;
       }
-      
+
       const repository = await storage.findRepositoryByUrl(url);
       res.json({ exists: !!repository, repository });
     } catch (error) {
@@ -125,6 +126,15 @@ async function processRepositoryFiles(repositoryId: number, url: string) {
         repositoryId,
         ...file
       });
+    }
+
+    // Process files for chunking after saving them
+    try {
+      await fileProcessor.processRepositoryFiles(repositoryId);
+      console.log(`Successfully processed and chunked files for repository ${repositoryId}`);
+    } catch (error) {
+      console.error("Error in file processing phase:", error);
+      // Continue with status update even if processing fails
     }
 
     console.log(`Successfully processed all files for repository ${repositoryId}`);
