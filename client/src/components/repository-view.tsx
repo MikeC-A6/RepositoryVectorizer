@@ -7,12 +7,45 @@ import { FileIcon, FolderIcon } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface RepositoryViewProps {
   repository: Repository;
 }
 
 export function RepositoryView({ repository }: RepositoryViewProps) {
+  const { toast } = useToast();
+
+  const generateEmbeddings = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest(
+        "POST",
+        `/api/repositories/${repository.id}/generate-embeddings`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to generate embeddings");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Embeddings Generation Started",
+        description: "The repository content is being processed for embeddings.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate embeddings",
+        variant: "destructive",
+      });
+    },
+  });
+
   const { data: repositoryStatus } = useQuery<Repository>({
     queryKey: ["/api/repositories", repository.id],
     refetchInterval: repository.status === "pending" ? 2000 : false,
@@ -20,7 +53,7 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
 
   const { data: files, isLoading } = useQuery<File[]>({
     queryKey: ["/api/repositories", repository.id, "files"],
-    enabled: repositoryStatus?.status === "completed",
+    enabled: repositoryStatus?.status === "completed" || repositoryStatus?.status === "ready_for_embedding",
   });
 
   const status = repositoryStatus?.status || repository.status;
@@ -54,6 +87,37 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
               There was an error processing the repository. Please try again.
             </AlertDescription>
           </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (status === "ready_for_embedding") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Repository Processed</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <AlertDescription>
+              Repository files have been processed. Would you like to generate embeddings now?
+            </AlertDescription>
+          </Alert>
+          <Button
+            onClick={() => generateEmbeddings.mutate()}
+            disabled={generateEmbeddings.isPending}
+          >
+            {generateEmbeddings.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating Embeddings...
+              </>
+            ) : (
+              "Generate Embeddings"
+            )}
+          </Button>
         </CardContent>
       </Card>
     );

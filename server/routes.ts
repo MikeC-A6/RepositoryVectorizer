@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertRepositorySchema, insertFileSchema } from "@shared/schema";
 import { fetchRepositoryFiles } from "../client/src/lib/graphql";
 import { fileProcessor } from "./lib/file-processor";
+import { embeddingsController } from "./lib/embeddings/embeddings-controller";
 
 export function registerRoutes(app: Express): Server {
   // Add environment variables route
@@ -106,41 +107,56 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add new route for triggering embedding generation
+  app.post("/api/repositories/:id/generate-embeddings", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const repository = await storage.getRepository(id);
+
+      if (!repository) {
+        res.status(404).json({ message: "Repository not found" });
+        return;
+      }
+
+      // Start the embedding generation process
+      await embeddingsController.processRepository(id);
+
+      res.json({ message: "Embedding generation started" });
+    } catch (error) {
+      console.error("Error generating embeddings:", error);
+      res.status(500).json({ message: "Error generating embeddings" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
 
+// Modify the existing processRepositoryFiles function to only handle file processing
 async function processRepositoryFiles(repositoryId: number, url: string) {
   try {
     if (!process.env.GITHUB_TOKEN) {
-      throw new Error("GitHub token is not configured in the server environment");
+      throw new Error("GitHub token is not configured");
     }
 
     console.log(`Starting GraphQL query for repository: ${url}`);
     const files = await fetchRepositoryFiles(url, process.env.GITHUB_TOKEN);
     console.log(`Retrieved ${files.length} files from GitHub`);
 
-    for (const file of files) {
-      console.log(`Processing file: ${file.path}`);
-      await storage.createFile({
-        repositoryId,
-        ...file
-      });
-    }
-
-    // Process files for chunking after saving them
+    // Process files for chunking
     try {
       await fileProcessor.processRepositoryFiles(repositoryId);
       console.log(`Successfully processed and chunked files for repository ${repositoryId}`);
+      // Update status to indicate ready for embedding
+      await storage.updateRepositoryStatus(repositoryId, "ready_for_embedding");
     } catch (error) {
       console.error("Error in file processing phase:", error);
-      // Continue with status update even if processing fails
+      await storage.updateRepositoryStatus(repositoryId, "failed");
+      throw error;
     }
-
-    console.log(`Successfully processed all files for repository ${repositoryId}`);
-    await storage.updateRepositoryStatus(repositoryId, "completed");
   } catch (error) {
     console.error("Error processing repository files:", error);
     await storage.updateRepositoryStatus(repositoryId, "failed");
+    throw error;
   }
 }
