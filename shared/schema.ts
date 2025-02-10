@@ -23,13 +23,10 @@ export const files = pgTable("files", {
 // Initialize vector extension and set dimensions for OpenAI embedding-3-large (3072 dimensions)
 const setupVectorExtension = sql.raw(`
   CREATE EXTENSION IF NOT EXISTS vector;
+  DROP INDEX IF EXISTS files_embedding_idx;
   ALTER TABLE files 
   ALTER COLUMN embedding TYPE vector(3072) 
   USING embedding::vector(3072);
-  CREATE INDEX IF NOT EXISTS files_embedding_idx 
-  ON files 
-  USING ivfflat (embedding vector_l2_ops) 
-  WITH (lists = 100);
 `);
 
 // Execute the SQL setup
