@@ -12,26 +12,36 @@ export class EmbeddingsController {
       }
 
       console.log(`Starting embedding generation for repository ${repositoryId}`);
-      
+
+      // First clean up any existing files
+      await storage.deleteFilesByRepositoryId(repositoryId);
+
       // Get processed chunks from file processor
       const processedRepo = fileProcessor.getProcessedRepository(repositoryId);
       if (!processedRepo) {
         throw new Error(`No processed files found for repository ${repositoryId}`);
       }
 
-      // Generate embeddings
-      const embeddedChunks = await embeddingsService.generateEmbeddings(processedRepo.chunks);
-      console.log(`Generated embeddings for ${embeddedChunks.length} chunks`);
+      // Generate embeddings in batches
+      const batchSize = 100;
+      const chunks = processedRepo.chunks;
+      console.log(`Processing ${chunks.length} chunks in batches of ${batchSize}`);
 
-      // Store embeddings in database
-      for (const chunk of embeddedChunks) {
-        await storage.createFile({
-          repositoryId,
-          path: chunk.metadata.filePath,
-          content: chunk.content,
-          metadata: chunk.metadata,
-          embedding: JSON.stringify(chunk.embedding)
-        });
+      for (let i = 0; i < chunks.length; i += batchSize) {
+        const batch = chunks.slice(i, i + batchSize);
+        const embeddedChunks = await embeddingsService.generateEmbeddings(batch);
+        console.log(`Generated embeddings for batch ${Math.floor(i/batchSize) + 1} of ${Math.ceil(chunks.length/batchSize)}`);
+
+        // Store embeddings in database
+        for (const chunk of embeddedChunks) {
+          await storage.createFile({
+            repositoryId,
+            path: chunk.path,
+            content: chunk.content,
+            metadata: chunk.metadata,
+            embedding: chunk.embedding
+          });
+        }
       }
 
       console.log(`Successfully stored embeddings for repository ${repositoryId}`);
