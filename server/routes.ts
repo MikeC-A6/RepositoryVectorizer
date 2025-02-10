@@ -143,7 +143,22 @@ async function processRepositoryFiles(repositoryId: number, url: string) {
     const files = await fetchRepositoryFiles(url, process.env.GITHUB_TOKEN);
     console.log(`Retrieved ${files.length} files from GitHub`);
 
-    // Process files for chunking
+    // First save all files to the database
+    console.log(`Saving ${files.length} files to database for repository ${repositoryId}`);
+    for (const file of files) {
+      try {
+        await storage.createFile({
+          repositoryId,
+          ...file
+        });
+      } catch (error) {
+        console.error(`Error saving file ${file.path}:`, error);
+        throw error;
+      }
+    }
+    console.log(`Successfully saved all files to database for repository ${repositoryId}`);
+
+    // Then process files for chunking
     try {
       await fileProcessor.processRepositoryFiles(repositoryId);
       console.log(`Successfully processed and chunked files for repository ${repositoryId}`);
