@@ -11,22 +11,17 @@ export const repositories = pgTable("repositories", {
   status: text("status").notNull().default("pending"),
 });
 
-// Define custom vector type that properly integrates with Drizzle
-export const pgVector = (dimensions: number) => {
-  return text("embedding", { mode: "json" }).$type<number[]>();
-};
-
 export const files = pgTable("files", {
   id: serial("id").primaryKey(),
   repositoryId: integer("repository_id").notNull(),
   path: text("path").notNull(),
   content: text("content").notNull(),
   metadata: jsonb("metadata").notNull(),
-  embedding: pgVector(1536),
+  embedding: text("embedding").notNull().$type<string>()
 });
 
 // Create index for vector similarity search
-sql`CREATE INDEX IF NOT EXISTS files_embedding_idx ON files USING ivfflat (embedding vector_l2_ops);`;
+sql`CREATE INDEX IF NOT EXISTS files_embedding_idx ON files USING ivfflat (embedding vector_l2_ops);`.execute;
 
 export const insertRepositorySchema = createInsertSchema(repositories).pick({
   url: true,
