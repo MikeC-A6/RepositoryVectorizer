@@ -42,10 +42,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFile(file: InsertFile): Promise<File> {
-    // Ensure embedding is in the correct format for pgvector
+    // Format the embedding as a proper vector string
     const fileData = {
       ...file,
-      embedding: Array.isArray(file.embedding) ? file.embedding.join(',') : file.embedding
+      embedding: Array.isArray(file.embedding) 
+        ? `[${file.embedding.join(',')}]` 
+        : typeof file.embedding === 'string' && !file.embedding.startsWith('[') 
+          ? `[${file.embedding}]`
+          : file.embedding
     };
 
     const [newFile] = await db

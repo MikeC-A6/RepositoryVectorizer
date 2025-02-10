@@ -24,7 +24,7 @@ export class OpenAIEmbeddingsService implements IEmbeddingsService {
     const embeddedChunks: EmbeddedChunk[] = [];
     
     // Process chunks in batches to avoid rate limits
-    const batchSize = 10;
+    const batchSize = 20;
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
       console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(chunks.length / batchSize)}`);
