@@ -48,15 +48,19 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
 
   const { data: repositoryStatus } = useQuery<Repository>({
     queryKey: ["/api/repositories", repository.id],
-    refetchInterval: repository.status === "pending" || repository.status === "ready_for_embedding" ? 2000 : false,
+    // Only poll while in pending state
+    refetchInterval: repository.status === "pending" ? 2000 : false,
   });
 
   const { data: files, isLoading } = useQuery<File[]>({
     queryKey: ["/api/repositories", repository.id, "files"],
+    // Enable files query for both completed and ready_for_embedding states
     enabled: repositoryStatus?.status === "completed" || repositoryStatus?.status === "ready_for_embedding",
   });
 
+  // Always use the latest status from the query, fallback to prop
   const status = repositoryStatus?.status || repository.status;
+  console.log("Current repository status:", status); // Debug log
 
   if (status === "pending") {
     return (
@@ -96,7 +100,7 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Repository Processed</CardTitle>
+          <CardTitle>Repository Ready for Embeddings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
@@ -147,7 +151,7 @@ export function RepositoryView({ repository }: RepositoryViewProps) {
         <Alert>
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertDescription>
-            Repository has been successfully processed.
+            Repository has been successfully processed and indexed.
           </AlertDescription>
         </Alert>
       </CardHeader>

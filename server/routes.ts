@@ -139,12 +139,12 @@ async function processRepositoryFiles(repositoryId: number, url: string) {
       throw new Error("GitHub token is not configured");
     }
 
-    console.log(`Starting GraphQL query for repository: ${url}`);
+    console.log(`[Repository ${repositoryId}] Starting GraphQL query for repository: ${url}`);
     const files = await fetchRepositoryFiles(url, process.env.GITHUB_TOKEN);
-    console.log(`Retrieved ${files.length} files from GitHub`);
+    console.log(`[Repository ${repositoryId}] Retrieved ${files.length} files from GitHub`);
 
     // First save all files to the database
-    console.log(`Saving ${files.length} files to database for repository ${repositoryId}`);
+    console.log(`[Repository ${repositoryId}] Saving ${files.length} files to database`);
     for (const file of files) {
       try {
         await storage.createFile({
@@ -152,25 +152,29 @@ async function processRepositoryFiles(repositoryId: number, url: string) {
           ...file
         });
       } catch (error) {
-        console.error(`Error saving file ${file.path}:`, error);
+        console.error(`[Repository ${repositoryId}] Error saving file ${file.path}:`, error);
         throw error;
       }
     }
-    console.log(`Successfully saved all files to database for repository ${repositoryId}`);
+    console.log(`[Repository ${repositoryId}] Successfully saved all files to database`);
 
     // Then process files for chunking
     try {
       await fileProcessor.processRepositoryFiles(repositoryId);
-      console.log(`Successfully processed and chunked files for repository ${repositoryId}`);
-      // Update status to indicate ready for embedding
+      console.log(`[Repository ${repositoryId}] Successfully processed and chunked files`);
+
+      // Update status to ready_for_embedding and verify the update
       await storage.updateRepositoryStatus(repositoryId, "ready_for_embedding");
+      const updatedRepo = await storage.getRepository(repositoryId);
+      console.log(`[Repository ${repositoryId}] Updated status to: ${updatedRepo?.status}`);
+
     } catch (error) {
-      console.error("Error in file processing phase:", error);
+      console.error(`[Repository ${repositoryId}] Error in file processing phase:`, error);
       await storage.updateRepositoryStatus(repositoryId, "failed");
       throw error;
     }
   } catch (error) {
-    console.error("Error processing repository files:", error);
+    console.error(`[Repository ${repositoryId}] Error processing repository files:`, error);
     await storage.updateRepositoryStatus(repositoryId, "failed");
     throw error;
   }
